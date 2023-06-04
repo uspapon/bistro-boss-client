@@ -3,42 +3,59 @@ import { Helmet } from "react-helmet-async";
 import { useForm } from "react-hook-form";
 import { AuthContext } from "../../providers/AuthProvider";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import SocialLogin from "../Shared/SocialLogin/SocialLogin";
 
 
 const SignUp = () => {
     const { register, handleSubmit, reset, watch, formState: { errors } } = useForm();
-    const { createUser, updateUserProfile, logOut } = useContext(AuthContext);
+    const { user, createUser, updateUserProfile, logOut } = useContext(AuthContext);
     const navigate = useNavigate();
     const onSubmit = data => {
         console.log(data);
         createUser(data.email, data.password)
-        .then(result => {
-            const newUser = result.user;
-            console.log(newUser);
-            updateUserProfile(data.name, data.photoURL)
-            .then(() => {
-                console.log("User Profile has been Updated Successfully")
-                reset()
-                Swal.fire({
-                    position: 'top-end',
-                    icon: 'success',
-                    title: 'User has been Created Successfully',
-                    showConfirmButton: false,
-                    timer: 1500
-                  })
+            .then(result => {
+                const newUser = result.user;
+                console.log(newUser);
+                updateUserProfile(data.name, data.photoURL)
+                    .then(() => {
+                        const saveUser = { name: data.name, email: data.email }
+                        fetch('http://localhost:5000/users', {
+                            method: 'POST',
+                            headers: {
+                                'content-type': 'application/json'
+                            },
+                            body: JSON.stringify(saveUser)
+                        })
+                            .then(result => result.json())
+                            .then(data => {
+                                if (data.insertedId) {
+                                    console.log("user info has been stored to the DB")
+                                    reset()
+                                    Swal.fire({
+                                        position: 'top-end',
+                                        icon: 'success',
+                                        title: 'User has been Created Successfully',
+                                        showConfirmButton: false,
+                                        timer: 1500
+                                    })
 
-                  logOut()
-                  .then(() => {
-                    navigate('/login');
-                  })
-                  .catch(error => console.log(error))
-                  
-                
+                                    navigate('/login');
+
+                                    // logOut()
+                                    //     .then(() => {
+                                    //         navigate('/login');
+                                    //     })
+                                    //     .catch(error => console.log(error))
+                                }
+                            })
+
+
+
+                    })
+                    .catch(error => console.log(error))
             })
             .catch(error => console.log(error))
-        })
-        .catch(error => console.log(error))
     }
 
     console.log(watch("example")); // watch input value by passing the name of it
@@ -67,7 +84,7 @@ const SignUp = () => {
                                     <span className="label-text">Photo URL</span>
                                 </label>
                                 <input type="text" {...register("photoURL", { required: true })} placeholder="photo url" className="input input-bordered" />
-                                {errors.photoURL     && <span className="text-red-600">Photo URL field is required</span>}
+                                {errors.photoURL && <span className="text-red-600">Photo URL field is required</span>}
                             </div>
                             <div className="form-control">
                                 <label className="label">
@@ -98,6 +115,8 @@ const SignUp = () => {
 
                             </div>
                         </form>
+                        <p className="text-center"><small>Already have an account? Please <Link to="/login">Login</Link></small></p>
+                        <SocialLogin></SocialLogin>
                     </div>
                 </div>
             </div>
